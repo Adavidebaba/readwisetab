@@ -183,6 +183,31 @@ class QuoteViewModel {
 }
 
 // ==========================================================================
+// FONT SCALER (Adaptive Typography)
+// ==========================================================================
+class FontScaler {
+  static MAX_SIZE = 1.55;  // rem
+  static MIN_SIZE = 0.82;  // rem
+  static STEP = 0.04;      // rem per iteration
+
+  /**
+   * Adjusts font-size of `textEl` so it fits inside `wrapperEl` without overflow.
+   */
+  static fit(textEl, wrapperEl) {
+    const availableHeight = wrapperEl.clientHeight;
+    if (availableHeight === 0) return;
+
+    let size = FontScaler.MAX_SIZE;
+    textEl.style.fontSize = `${size}rem`;
+
+    while (textEl.scrollHeight > availableHeight && size > FontScaler.MIN_SIZE) {
+      size = Math.max(FontScaler.MIN_SIZE, size - FontScaler.STEP);
+      textEl.style.fontSize = `${size}rem`;
+    }
+  }
+}
+
+// ==========================================================================
 // NEW TAB COORDINATOR (Application Flow & DOM Binder)
 // ==========================================================================
 class NewTabCoordinator {
@@ -198,6 +223,7 @@ class NewTabCoordinator {
   initializeDOMElements() {
     this.quoteCard = document.getElementById('quoteCard');
     this.quoteText = document.getElementById('quoteText');
+    this.quoteTextWrapper = this.quoteText.closest('.quote-text-wrapper');
     this.bookTitle = document.getElementById('bookTitle');
     this.bookAuthor = document.getElementById('bookAuthor');
     this.bookCover = document.getElementById('bookCover');
@@ -253,6 +279,11 @@ class NewTabCoordinator {
 
       this.nextBtn.disabled = false;
       this.discardBtn.disabled = false;
+
+      // Rescale font after DOM update
+      requestAnimationFrame(() => {
+        FontScaler.fit(this.quoteText, this.quoteTextWrapper);
+      });
     });
   }
 
@@ -269,20 +300,21 @@ class NewTabCoordinator {
   }
 
   showSetupRequiredView() {
-    this.quoteText.textContent = "Sincronizza le tue citazioni per iniziare!";
-    this.bookTitle.textContent = "Nessuna citazione caricata";
-    this.bookAuthor.textContent = "Apri le impostazioni e clicca su Sincronizza.";
+    this.quoteText.textContent = 'Sincronizza le tue citazioni per iniziare!';
+    this.bookTitle.textContent = 'Nessuna citazione caricata';
+    this.bookAuthor.textContent = 'Apri le impostazioni e clicca su Sincronizza.';
     this.bookCover.classList.add('hidden');
     this.coverFallback.classList.remove('hidden');
-    this.fallbackTitle.textContent = "SETUP";
+    this.fallbackTitle.textContent = 'SETUP';
     this.nextBtn.disabled = true;
     this.discardBtn.disabled = true;
+    this.quoteText.style.fontSize = '1.3rem';
   }
 
   applyTransition(updateCallback) {
     const section = document.querySelector('.content-section');
     const cover = document.querySelector('.cover-section');
-    
+
     section.classList.add('fade-out-content');
     cover.classList.add('fade-out-content');
 
@@ -292,12 +324,12 @@ class NewTabCoordinator {
       cover.classList.remove('fade-out-content');
       section.classList.add('fade-in-content');
       cover.classList.add('fade-in-content');
-      
+
       setTimeout(() => {
         section.classList.remove('fade-in-content');
         cover.classList.remove('fade-in-content');
-      }, 600);
-    }, 250);
+      }, 500);
+    }, 220);
   }
 
   async handleNextClick() {
