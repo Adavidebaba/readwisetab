@@ -5,6 +5,11 @@
 ### Aggiunto
 - Versione iniziale dell'estensione Chrome **Readwise New Tab Quotes** (Manifest V3).
 
+### Corretto
+- Risolto il problema del taglio/nascondimento dei pulsanti di controllo per citazioni molto lunghe o schermi piccoli:
+  - Abilitato `overflow-y: auto` sul `body` per lo scroll globale.
+  - Impostata un'altezza massima (`max-height: 250px`) e scrolling interno con barra personalizzata premium per il contenitore di testo della citazione.
+
 ### Logica Architetturale (Importante per sviluppi futuri)
 - **New Tab Override:** La pagina di avvio è registrata tramite `chrome_url_overrides` nel file `manifest.json`.
 - **Prestazioni e Caching (OOP):**
