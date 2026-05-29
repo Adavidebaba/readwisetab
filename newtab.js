@@ -132,10 +132,17 @@ class ReadwiseManager {
       body: JSON.stringify({ name: 'discard' })
     });
 
-    if (!response.ok) {
-      throw new Error(`Tagging failed with status ${response.status}`);
+    // 200/201 = ok
+    // 400 = tag già esistente (Readwise non accetta duplicati)
+    // 404 = citazione non trovata sulla sorgente
+    // 409 = conflitto, già taggata
+    // In tutti questi casi rimuoviamo dalla cache locale senza errore
+    if (response.ok || [400, 404, 409].includes(response.status)) {
+      return { ok: true, status: response.status };
     }
-    return true;
+
+    // Solo per errori reali (5xx, 401, 403) lanciamo l'eccezione
+    throw new Error(`Errore API Readwise (HTTP ${response.status}): impossibile taggare la citazione.`);
   }
 }
 
@@ -169,10 +176,16 @@ class QuoteViewModel {
 
     this.isLoading = true;
     try {
+      // Invia il tag a Readwise (errori soft come 404/409 non bloccano)
       await readwiseManager.tagQuoteAsDiscard(this.currentQuote.id);
+    } catch (err) {
+      // Rilancia solo per errori gravi; la rimozione locale avviene sempre
+      console.warn('Readwise tag API error:', err.message);
+      throw err;
+    } finally {
+      // Rimuovi sempre dalla cache locale, anche se l'API ha avuto un errore soft
       this.quotes = await storageManager.removeQuote(this.currentQuote.id);
       this.selectRandomQuote();
-    } finally {
       this.isLoading = false;
     }
   }
@@ -340,16 +353,18 @@ class NewTabCoordinator {
   async handleDiscardClick() {
     this.discardBtn.disabled = true;
     this.discardBtn.classList.add('btn-danger-active');
-    
+
     try {
       await this.viewModel.discardCurrent(this.storage, this.readwise);
-      this.updateView();
     } catch (err) {
-      console.error('Failed to discard quote:', err);
-      alert('Errore durante lo spostamento in Discards. Riprova.');
+      // Anche in caso di errore grave, la citazione è già rimossa dalla cache locale
+      console.error('Discard API error:', err.message);
+      alert(`Attenzione: ${err.message}\n\nLa citazione è stata rimossa dalla lista locale.`);
     } finally {
       this.discardBtn.classList.remove('btn-danger-active');
       this.discardBtn.disabled = false;
+      // Aggiorna sempre la vista indipendentemente dall'esito
+      this.updateView();
     }
   }
 
