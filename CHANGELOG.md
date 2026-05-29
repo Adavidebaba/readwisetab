@@ -4,6 +4,7 @@
 
 ### Aggiunto
 - Versione iniziale dell'estensione Chrome **Readwise New Tab Quotes** (Manifest V3).
+- Creato il file **README.md** con la descrizione completa del progetto, architettura OOP e guida d'installazione dettagliata.
 
 ### Corretto
 - Risolto il problema del taglio/nascondimento dei pulsanti di controllo per citazioni molto lunghe o schermi piccoli:
