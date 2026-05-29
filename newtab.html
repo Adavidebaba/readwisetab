@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Readwise New Tab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="newtab.css">
+</head>
+<body>
+  <!-- Dynamic Background Grid -->
+  <div class="bg-blur-container">
+    <div class="blur-blob blob-1"></div>
+    <div class="blur-blob blob-2"></div>
+  </div>
+
+  <div class="app-container">
+    <!-- Main Quote Card -->
+    <main class="quote-card" id="quoteCard">
+      <!-- Book Cover Container -->
+      <div class="cover-section">
+        <div class="cover-wrapper">
+          <img id="bookCover" class="book-cover hidden" alt="Copertina del libro" src="">
+          <div id="coverFallback" class="cover-fallback">
+            <svg class="book-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+            </svg>
+            <span id="fallbackTitle" class="fallback-title">Nessuna Copertina</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quote Content Section -->
+      <div class="content-section">
+        <!-- Quote Text -->
+        <div class="quote-text-container">
+          <span class="quote-mark open">“</span>
+          <p id="quoteText" class="quote-text">Configura l'estensione per iniziare a visualizzare le tue citazioni preferite di Readwise.</p>
+          <span class="quote-mark close">”</span>
+        </div>
+
+        <!-- Meta Details -->
+        <div class="meta-container">
+          <h2 id="bookTitle" class="book-title">Pronto per iniziare?</h2>
+          <p id="bookAuthor" class="book-author">Fai clic sul pulsante delle impostazioni in basso per inserire il tuo token Readwise.</p>
+        </div>
+
+        <!-- Interactive Controls -->
+        <div class="controls-container">
+          <button id="discardBtn" class="btn btn-secondary" title="Sposta in Discards (Tag 'discard')" disabled>
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            <span>Scarta</span>
+          </button>
+          
+          <button id="nextBtn" class="btn btn-primary" title="Mostra un'altra citazione casuale" disabled>
+            <span>Successiva</span>
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer Controls -->
+    <footer class="footer">
+      <button id="settingsToggleBtn" class="settings-toggle-btn" title="Apri Impostazioni">
+        <svg class="settings-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      </button>
+    </footer>
+
+    <!-- Glassmorphic Settings Modal -->
+    <div id="settingsModal" class="modal-overlay hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Impostazioni Readwise</h3>
+          <button id="closeSettingsBtn" class="close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-description">
+            Inserisci il tuo Token di Accesso Personale di Readwise per sincronizzare le tue citazioni. Puoi ottenerlo qui:
+            <a href="https://readwise.io/access_token" target="_blank" rel="noopener noreferrer">readwise.io/access_token</a>.
+          </p>
+          <div class="form-group">
+            <label for="apiKeyInput">Readwise API Token</label>
+            <input type="password" id="apiKeyInput" placeholder="Inserisci il token...">
+          </div>
+          <div class="sync-status-box">
+            <span class="status-label">Stato Sincronizzazione:</span>
+            <span id="syncStatus" class="status-value">Non collegato</span>
+          </div>
+          <button id="saveApiKeyBtn" class="btn btn-primary btn-block">Salva e Sincronizza</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="newtab.js"></script>
+</body>
+</html>
