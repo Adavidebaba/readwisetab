@@ -78,16 +78,12 @@ class ReadwiseManager {
 
   async syncAllQuotes(progressCallback) {
     let quotesList = [];
-    let cursor = null;
+    // data.next è un URL completo restituito da Readwise, usarlo direttamente
+    let nextUrl = `${this.baseUrl}/export/`;
     let pagesFetched = 0;
 
-    do {
-      let url = `${this.baseUrl}/export/`;
-      if (cursor) {
-        url += `?pageCursor=${encodeURIComponent(cursor)}`;
-      }
-
-      const response = await fetch(url, { headers: this.getHeaders() });
+    while (nextUrl) {
+      const response = await fetch(nextUrl, { headers: this.getHeaders() });
       if (!response.ok) {
         throw new Error(`Sincronizzazione fallita: HTTP ${response.status}`);
       }
@@ -95,13 +91,15 @@ class ReadwiseManager {
       const data = await response.json();
       const extracted = this.extractQuotesFromExport(data.results || []);
       quotesList = quotesList.concat(extracted);
-      
-      cursor = data.next;
+
+      // data.next è null a fine lista, oppure è l'URL della pagina successiva
+      nextUrl = data.next || null;
       pagesFetched++;
+
       if (progressCallback) {
         progressCallback(quotesList.length, pagesFetched);
       }
-    } while (cursor);
+    }
 
     return quotesList;
   }
