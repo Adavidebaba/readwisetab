@@ -110,8 +110,13 @@ class ReadwiseManager {
     const list = [];
     for (const book of books) {
       if (!book.highlights || book.highlights.length === 0) continue;
-      
+
       for (const h of book.highlights) {
+        // Salta le citazioni già taggate come "discard" su Readwise
+        const isDiscarded = Array.isArray(h.tags) &&
+          h.tags.some(t => t.name === 'discard');
+        if (isDiscarded) continue;
+
         list.push({
           id: h.id,
           text: h.text,
