@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## [1.1.1] - 2026-05-29
+
+### Aggiunto
+- Visualizzazione del numero totale di citazioni sincronizzate nel popup dello stato di sincronizzazione (es. `Ultima sync: GG/MM/AAAA, HH:MM:SS (X citazioni)`).
+- Aggiornamento automatico del conteggio all'apertura del pannello impostazioni o quando avviene un cambio dello storage in background.
+
 ## [1.1.0] - 2026-05-29
 
 ### Architettura

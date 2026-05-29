@@ -48,10 +48,10 @@ class NewTabCoordinator {
     });
 
     // Listen for storage updates pushed by the background sync
-    chrome.storage.onChanged.addListener((changes, area) => {
+    chrome.storage.onChanged.addListener(async (changes, area) => {
       if (area === 'local' && changes[StorageManager.KEYS.QUOTES]) {
         this.viewModel.quotes = changes[StorageManager.KEYS.QUOTES].newValue || [];
-        this.syncStatus.textContent = 'Sincronizzato';
+        await this.populateSyncStatus();
       }
     });
   }
@@ -70,11 +70,12 @@ class NewTabCoordinator {
 
   async populateSyncStatus() {
     const lastSync = await this.storage.getLastSync();
+    const count = this.viewModel.quotes ? this.viewModel.quotes.length : 0;
     if (lastSync) {
       const d = new Date(lastSync);
-      this.syncStatus.textContent = `Ultima sync: ${d.toLocaleString('it-IT')}`;
+      this.syncStatus.textContent = `Ultima sync: ${d.toLocaleString('it-IT')} (${count} citazioni)`;
     } else {
-      this.syncStatus.textContent = 'Non sincronizzato';
+      this.syncStatus.textContent = `Non sincronizzato (${count} citazioni)`;
     }
   }
 
@@ -190,7 +191,10 @@ class NewTabCoordinator {
     }
   }
 
-  openSettings()  { this.settingsModal.classList.remove('hidden'); }
+  async openSettings()  {
+    await this.populateSyncStatus();
+    this.settingsModal.classList.remove('hidden');
+  }
   closeSettings() { this.settingsModal.classList.add('hidden'); }
 
   async handleSaveApiKey() {
