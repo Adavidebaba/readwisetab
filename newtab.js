@@ -78,12 +78,20 @@ class ReadwiseManager {
 
   async syncAllQuotes(progressCallback) {
     let quotesList = [];
-    // data.next è un URL completo restituito da Readwise, usarlo direttamente
-    let nextUrl = `${this.baseUrl}/export/`;
+    // L'Export API usa 'nextPageCursor' (non 'next') come campo di paginazione
+    // Fonte: documentazione ufficiale readwise.io/api_deets
+    let nextPageCursor = null;
     let pagesFetched = 0;
 
-    while (nextUrl) {
-      const response = await fetch(nextUrl, { headers: this.getHeaders() });
+    while (true) {
+      const queryParams = new URLSearchParams();
+      if (nextPageCursor) {
+        queryParams.append('pageCursor', nextPageCursor);
+      }
+
+      const url = `${this.baseUrl}/export/?${queryParams.toString()}`;
+      const response = await fetch(url, { headers: this.getHeaders() });
+
       if (!response.ok) {
         throw new Error(`Sincronizzazione fallita: HTTP ${response.status}`);
       }
@@ -92,13 +100,14 @@ class ReadwiseManager {
       const extracted = this.extractQuotesFromExport(data.results || []);
       quotesList = quotesList.concat(extracted);
 
-      // data.next è null a fine lista, oppure è l'URL della pagina successiva
-      nextUrl = data.next || null;
+      nextPageCursor = data.nextPageCursor || null;
       pagesFetched++;
 
       if (progressCallback) {
         progressCallback(quotesList.length, pagesFetched);
       }
+
+      if (!nextPageCursor) break;
     }
 
     return quotesList;
