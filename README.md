@@ -1,57 +1,81 @@
 # Readwise New Tab Quotes
 
-Una splendida estensione per Google Chrome (Manifest V3) che sostituisce la pagina del "Nuovo Tab" mostrando una citazione casuale estratta dalla tua libreria di **Readwise**. Progettata con un design premium scuro, un'architettura modulare ad oggetti (OOP) e un sistema di caching ad alte prestazioni.
+Un'estensione per Google Chrome (Manifest V3) che sostituisce la pagina **Nuovo Tab** mostrando una citazione casuale dalla tua libreria **Readwise**. Design premium scuro con glassmorphism, architettura modulare OOP e sincronizzazione automatica giornaliera.
 
 ---
 
-## 🌟 Caratteristiche Principali
+## 🌟 Caratteristiche
 
-- **Caricamento Istantaneo:** Le citazioni vengono scaricate periodicamente in blocco e salvate in cache locale (`chrome.storage.local`). L'apertura di una nuova scheda è immediata e non richiede attese di rete.
-- **Sincronizzazione della Chiave API:** Grazie all'uso di `chrome.storage.sync`, il tuo token personale di Readwise si sincronizza automaticamente tra tutti i dispositivi connessi allo stesso account Google.
-- **Estetica Premium:** Tema scuro profondo, sfondo animato con sfere sfocate fluttuanti e un layout di scheda con effetto *glassmorphism* (vetro satinato).
-- **Copertine dei Libri:** Mostra la copertina originale del libro associato. Se non è disponibile, genera automaticamente un elegante segnaposto testuale.
-- **Gestione dei Discard:** Un pulsante dedicato ti permette di contrassegnare una citazione con il tag `"discard"` su Readwise (`POST` all'API) per escluderla dalle rotazioni future, senza eliminarla in modo distruttivo.
-- **Scrolling Intelligente:** Supporto nativo per citazioni molto lunghe grazie a un contenitore scorrevole con una barra di navigazione ultrasottile ed elegante.
-
----
-
-## 🛠️ Architettura del Codice
-
-L'estensione è strutturata seguendo i principi **Single Responsibility (SRP)** e i pattern **MVVM / Coordinator**:
-
-* **`StorageManager`:** Regola la persistenza dei dati. Usa `storage.sync` per le impostazioni comuni (API Key) e `storage.local` per la cache pesante delle citazioni.
-* **`ReadwiseManager`:** Gestisce il networking e la comunicazione asincrona con l'API V2 di Readwise (gestione del caricamento paginato e del tagging dei discard).
-* **`QuoteViewModel`:** Gestisce lo stato e la logica della citazione attiva, compresa la selezione casuale senza ripetizioni repentine.
-* **`NewTabCoordinator`:** Collega gli elementi grafici del DOM alla logica di business, gestendo gli eventi d'interazione e le transizioni animate di dissolvenza.
+- **Caricamento Istantaneo** — Le citazioni sono salvate in cache locale (`chrome.storage.local`). Nessuna attesa di rete all'apertura del tab.
+- **Sync Automatica Giornaliera** — Un service worker in background aggiorna la cache ogni 24 ore via `chrome.alarms`.
+- **Sync Incrementale** — Dopo la prima sync completa, le successive scaricano solo le citazioni modificate/nuove (parametro `updatedAfter`), risparmiando traffico e tempo.
+- **Sincronizzazione Cross-Device** — Il token API è salvato in `chrome.storage.sync`: si propaga automaticamente su tutti i dispositivi con lo stesso account Google.
+- **Pulsante Favorite ⭐** — Aggiunge/rimuove il preferito direttamente su Readwise (`PATCH is_favorite`). I preferiti appaiono **3× più spesso** nella rotazione casuale.
+- **Pulsante Discard 🗑️** — Applica il tag `"discard"` su Readwise (`POST /tags/`) ed esclude la citazione dalla cache locale. Non cancella il highlight dalla fonte.
+- **Filtro Discard alla Sync** — Le citazioni già taggate come `discard` su Readwise vengono automaticamente escluse durante il download.
+- **Font Adattivo** — La dimensione del testo si riduce automaticamente finché la citazione entra nello spazio disponibile, senza scroll.
+- **Copertine dei Libri** — Mostra la copertina originale del libro. Se non disponibile, genera un elegante segnaposto con il titolo.
+- **Design Premium** — Tema scuro profondo, sfere sfocate animate, glassmorphism, transizioni fluide e tipografia serif per le citazioni.
 
 ---
 
-## 🚀 Istruzioni per l'Installazione (Modalità Sviluppatore)
+## 🗂️ Architettura
 
-Se desideri installare manualmente l'estensione su tutti i tuoi dispositivi, segui questi semplici passaggi:
+L'estensione è strutturata in file a singola responsabilità (SRP) seguendo il pattern **MVVM / Coordinator**:
 
-### Passaggio 1: Scarica il codice
-Su ciascun computer in cui vuoi installare l'estensione, clona questo repository GitHub nella tua cartella locale:
+| File | Responsabilità |
+|---|---|
+| `storage-manager.js` | Accesso a `chrome.storage` (lettura, scrittura, merge incrementale) |
+| `readwise-manager.js` | Chiamate API Readwise (export paginato, tag, PATCH, test token) |
+| `quote-view-model.js` | Stato citazione attiva, selezione pesata, FontScaler |
+| `coordinator.js` | Binding DOM ↔ logica, eventi UI, transizioni, sync manuale |
+| `background.js` | Service worker: alarm giornaliero + sync incrementale automatica |
+| `newtab.js` | Entry point (avvia il Coordinator) |
+
+---
+
+## 🚀 Installazione (Modalità Sviluppatore)
+
+### 1 — Scarica il codice
 ```bash
 git clone https://github.com/Adavidebaba/readwisetab.git
 ```
-*(In alternativa, puoi scaricare il file ZIP del progetto da GitHub ed estrarlo in una cartella).*
+*(oppure scarica lo ZIP da GitHub ed estrailo)*
 
-### Passaggio 2: Abilita la Modalità Sviluppatore in Chrome
-1. Apri Google Chrome e digita nella barra degli indirizzi: `chrome://extensions/`
-2. In alto a destra, attiva l'interruttore **"Modalità sviluppatore"**.
+### 2 — Abilita la Modalità Sviluppatore in Chrome
+1. Apri `chrome://extensions/`
+2. Attiva **"Modalità sviluppatore"** in alto a destra
 
-### Passaggio 3: Carica l'estensione
-1. In alto a sinistra, fai clic sul pulsante **"Carica estensione non pacchettizzata"** (Load unpacked).
-2. Seleziona la cartella `readwisetab` che hai scaricato o clonato al Passaggio 1 (la cartella contenente il file `manifest.json`).
+### 3 — Carica l'estensione
+1. Clicca **"Carica estensione non pacchettizzata"**
+2. Seleziona la cartella `readwisetab` (quella con `manifest.json`)
 
-### Passaggio 4: Collega Readwise
-1. Apri una nuova scheda (Nuovo Tab) in Chrome.
-2. L'estensione si aprirà mostrando il pannello delle impostazioni.
-3. Inserisci il tuo **Token di Accesso Personale** (puoi trovarlo facilmente cliccando sul link integrato o andando direttamente su [readwise.io/access_token](https://readwise.io/access_token)).
-4. Clicca su **Salva e Sincronizza**. Le tue citazioni verranno caricate in pochi istanti.
+### 4 — Collega Readwise
+1. Apri un Nuovo Tab — apparirà il pannello impostazioni
+2. Inserisci il tuo **Token di Accesso Personale** da [readwise.io/access_token](https://readwise.io/access_token)
+3. Clicca **Salva e Sincronizza**
+
+> La prima sincronizzazione scarica tutte le citazioni (può richiedere qualche minuto con librerie grandi).
+> Le sincronizzazioni successive (manuali o automatiche) sono incrementali e molto più veloci.
+
+### 5 — Aggiornare l'estensione
+Quando viene rilasciata una nuova versione:
+```bash
+cd readwisetab && git pull
+```
+Poi vai su `chrome://extensions/` e clicca l'icona 🔄 sull'estensione.
+
+---
+
+## 🔑 Permessi richiesti
+
+| Permesso | Motivo |
+|---|---|
+| `storage` | Salva citazioni, token API e data ultima sync |
+| `alarms` | Esegue la sync automatica ogni 24 ore |
+| `https://readwise.io/*` | Chiama le API Readwise |
 
 ---
 
 ## 📝 Changelog & Storico
-Puoi consultare tutte le modifiche strutturali, architetturali e i bug risolti nel file dedicato **[CHANGELOG.md](CHANGELOG.md)**.
+Vedi **[CHANGELOG.md](CHANGELOG.md)** per il dettaglio di tutte le versioni.
