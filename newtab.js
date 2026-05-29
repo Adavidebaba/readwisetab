@@ -38,6 +38,13 @@ class StorageManager {
     return updated;
   }
 
+  async updateQuote(updatedQuote) {
+    const quotes = await this.getQuotes();
+    const updated = quotes.map(q => q.id === updatedQuote.id ? updatedQuote : q);
+    await this.setQuotes(updated);
+    return updated;
+  }
+
   async getLastSync() {
     const data = await chrome.storage.local.get(StorageManager.KEYS.LAST_SYNC);
     return data[StorageManager.KEYS.LAST_SYNC] || 0;
@@ -129,7 +136,8 @@ class ReadwiseManager {
           text: h.text,
           bookTitle: book.title,
           bookAuthor: book.author,
-          coverUrl: book.cover_image_url
+          coverUrl: book.cover_image_url,
+          isFavorite: h.is_favorite === true   // ← campo nativo dell'Export API
         });
       }
     }
@@ -144,19 +152,27 @@ class ReadwiseManager {
       body: JSON.stringify({ name: 'discard' })
     });
 
-    // 200/201 = ok
-    // 400 = tag già esistente (Readwise non accetta duplicati)
-    // 404 = citazione non trovata sulla sorgente
-    // 409 = conflitto, già taggata
-    // In tutti questi casi rimuoviamo dalla cache locale senza errore
+    // 200/201 = ok, 400 = tag già esistente, 404 = citazione assente, 409 = conflitto
     if (response.ok || [400, 404, 409].includes(response.status)) {
       return { ok: true, status: response.status };
     }
-
-    // Solo per errori reali (5xx, 401, 403) lanciamo l'eccezione
     throw new Error(`Errore API Readwise (HTTP ${response.status}): impossibile taggare la citazione.`);
   }
-}
+
+  async toggleFavorite(highlightId, isFavorite) {
+    // PATCH /api/v2/highlights/<id>/ con { "is_favorite": true/false }
+    const url = `${this.baseUrl}/highlights/${highlightId}/`;
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ is_favorite: isFavorite })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Errore API Readwise (HTTP ${response.status}): impossibile aggiornare il preferito.`);
+    }
+    return true;
+  }
 
 // ==========================================================================
 // QUOTE VIEW MODEL (UI State/Presentation Layer)
@@ -188,18 +204,27 @@ class QuoteViewModel {
 
     this.isLoading = true;
     try {
-      // Invia il tag a Readwise (errori soft come 404/409 non bloccano)
       await readwiseManager.tagQuoteAsDiscard(this.currentQuote.id);
     } catch (err) {
-      // Rilancia solo per errori gravi; la rimozione locale avviene sempre
       console.warn('Readwise tag API error:', err.message);
       throw err;
     } finally {
-      // Rimuovi sempre dalla cache locale, anche se l'API ha avuto un errore soft
       this.quotes = await storageManager.removeQuote(this.currentQuote.id);
       this.selectRandomQuote();
       this.isLoading = false;
     }
+  }
+
+  async toggleFavoriteCurrent(storageManager, readwiseManager) {
+    if (!this.currentQuote) return;
+
+    const newValue = !this.currentQuote.isFavorite;
+    await readwiseManager.toggleFavorite(this.currentQuote.id, newValue);
+
+    // Aggiorna la quote in memoria e in cache
+    this.currentQuote = { ...this.currentQuote, isFavorite: newValue };
+    this.quotes = await storageManager.updateQuote(this.currentQuote);
+    return newValue;
   }
 
   hasQuotes() {
@@ -256,6 +281,10 @@ class NewTabCoordinator {
     this.fallbackTitle = document.getElementById('fallbackTitle');
     this.nextBtn = document.getElementById('nextBtn');
     this.discardBtn = document.getElementById('discardBtn');
+    this.favoriteBtn = document.getElementById('favoriteBtn');
+    this.starEmpty = document.getElementById('starEmpty');
+    this.starFilled = document.getElementById('starFilled');
+    this.favoriteBtnLabel = document.getElementById('favoriteBtnLabel');
     this.settingsToggleBtn = document.getElementById('settingsToggleBtn');
     this.settingsModal = document.getElementById('settingsModal');
     this.closeSettingsBtn = document.getElementById('closeSettingsBtn');
@@ -267,10 +296,11 @@ class NewTabCoordinator {
   bindEventListeners() {
     this.nextBtn.addEventListener('click', () => this.handleNextClick());
     this.discardBtn.addEventListener('click', () => this.handleDiscardClick());
+    this.favoriteBtn.addEventListener('click', () => this.handleFavoriteClick());
     this.settingsToggleBtn.addEventListener('click', () => this.openSettings());
     this.closeSettingsBtn.addEventListener('click', () => this.closeSettings());
     this.saveApiKeyBtn.addEventListener('click', () => this.handleSaveApiKey());
-    
+
     // Close modal on overlay click
     this.settingsModal.addEventListener('click', (e) => {
       if (e.target === this.settingsModal) this.closeSettings();
@@ -301,15 +331,33 @@ class NewTabCoordinator {
       this.bookAuthor.textContent = quote.bookAuthor;
 
       this.updateCoverImage(quote);
+      this.updateFavoriteButton(quote.isFavorite);
 
       this.nextBtn.disabled = false;
       this.discardBtn.disabled = false;
+      this.favoriteBtn.disabled = false;
 
       // Rescale font after DOM update
       requestAnimationFrame(() => {
         FontScaler.fit(this.quoteText, this.quoteTextWrapper);
       });
     });
+  }
+
+  updateFavoriteButton(isFavorite) {
+    if (isFavorite) {
+      this.favoriteBtn.classList.add('is-favorite');
+      this.starEmpty.classList.add('hidden');
+      this.starFilled.classList.remove('hidden');
+      this.favoriteBtnLabel.textContent = 'Preferito';
+      this.favoriteBtn.title = 'Rimuovi dai preferiti';
+    } else {
+      this.favoriteBtn.classList.remove('is-favorite');
+      this.starEmpty.classList.remove('hidden');
+      this.starFilled.classList.add('hidden');
+      this.favoriteBtnLabel.textContent = 'Preferito';
+      this.favoriteBtn.title = 'Aggiungi ai preferiti';
+    }
   }
 
   updateCoverImage(quote) {
@@ -333,6 +381,7 @@ class NewTabCoordinator {
     this.fallbackTitle.textContent = 'SETUP';
     this.nextBtn.disabled = true;
     this.discardBtn.disabled = true;
+    this.favoriteBtn.disabled = true;
     this.quoteText.style.fontSize = '1.3rem';
   }
 
@@ -369,14 +418,33 @@ class NewTabCoordinator {
     try {
       await this.viewModel.discardCurrent(this.storage, this.readwise);
     } catch (err) {
-      // Anche in caso di errore grave, la citazione è già rimossa dalla cache locale
       console.error('Discard API error:', err.message);
       alert(`Attenzione: ${err.message}\n\nLa citazione è stata rimossa dalla lista locale.`);
     } finally {
       this.discardBtn.classList.remove('btn-danger-active');
       this.discardBtn.disabled = false;
-      // Aggiorna sempre la vista indipendentemente dall'esito
       this.updateView();
+    }
+  }
+
+  async handleFavoriteClick() {
+    if (!this.viewModel.currentQuote) return;
+
+    this.favoriteBtn.disabled = true;
+
+    // Aggiornamento ottimistico: cambia l'icona subito senza aspettare la rete
+    const previousValue = this.viewModel.currentQuote.isFavorite;
+    this.updateFavoriteButton(!previousValue);
+
+    try {
+      await this.viewModel.toggleFavoriteCurrent(this.storage, this.readwise);
+    } catch (err) {
+      // In caso di errore, ripristina lo stato precedente
+      console.error('Favorite API error:', err.message);
+      this.updateFavoriteButton(previousValue);
+      alert(`Errore: ${err.message}`);
+    } finally {
+      this.favoriteBtn.disabled = false;
     }
   }
 
