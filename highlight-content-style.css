@@ -1,0 +1,117 @@
+/* ══════════════════════════════════════════════════════════════════════════════
+   Readwise Highlight — Content Script Styles
+   Tutto sotto il prefisso #rw- / .rw- per evitare conflitti con la pagina host.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Tooltip (pulsante flottante) ─────────────────────────────────────────── */
+
+#rw-highlight-tooltip {
+  position: absolute;
+  z-index: 2147483647;
+  opacity: 0;
+  transform: translateY(4px) scale(0.95);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  pointer-events: none;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+#rw-highlight-tooltip.rw-highlight-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+#rw-highlight-tooltip.rw-highlight-hiding {
+  opacity: 0;
+  transform: translateY(4px) scale(0.95);
+  pointer-events: none;
+}
+
+#rw-highlight-save-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(30, 30, 40, 0.88);
+  backdrop-filter: blur(14px) saturate(1.5);
+  -webkit-backdrop-filter: blur(14px) saturate(1.5);
+  color: #f0f0f0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  box-shadow:
+    0 2px 12px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+  transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+#rw-highlight-save-btn:hover {
+  background: rgba(50, 50, 65, 0.92);
+  transform: translateY(-1px);
+  box-shadow:
+    0 4px 18px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.12) inset;
+}
+
+#rw-highlight-save-btn:active {
+  transform: translateY(0);
+  background: rgba(25, 25, 35, 0.95);
+}
+
+#rw-highlight-save-btn.rw-highlight-saving {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.rw-highlight-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.rw-highlight-label {
+  font-size: 13px;
+  line-height: 1;
+}
+
+/* ── Toast (notifica feedback) ────────────────────────────────────────────── */
+
+.rw-highlight-toast {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  z-index: 2147483647;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  opacity: 0;
+  transform: translateY(12px) scale(0.95);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  pointer-events: none;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.rw-highlight-toast-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.rw-highlight-toast-hiding {
+  opacity: 0;
+  transform: translateY(12px) scale(0.95);
+}
+
+.rw-highlight-toast-success {
+  background: linear-gradient(135deg, #1a7a4c, #22c55e);
+}
+
+.rw-highlight-toast-error {
+  background: linear-gradient(135deg, #b91c1c, #ef4444);
+}

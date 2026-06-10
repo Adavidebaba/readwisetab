@@ -124,4 +124,32 @@ class ReadwiseManager {
     }
     return true;
   }
+
+  /**
+   * Creates a new highlight on Readwise from selected web text.
+   * @param {Object} params
+   * @param {string} params.text - The highlighted text
+   * @param {string} params.title - Page title (source name)
+   * @param {string} params.sourceUrl - Full URL of the page
+   */
+  async createHighlight({ text, title, sourceUrl }) {
+    const url = `${this.baseUrl}/highlights/`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({
+        highlights: [{
+          text,
+          title,
+          source_url: sourceUrl,
+          source_type: 'article'
+        }]
+      })
+    });
+    if (!response.ok) {
+      throw new Error(`Errore API Readwise (HTTP ${response.status}): salvataggio highlight fallito.`);
+    }
+    return response.json();
+  }
 }
+
