@@ -1,0 +1,78 @@
+/* ==========================================================================
+   FOOTER STATS BAR COMPONENT
+   Minimalist, translucent badges displaying reading metrics
+   ========================================================================== */
+
+.footer {
+  justify-content: space-between !important;
+  align-items: center;
+}
+
+.footer-stats {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  transition: opacity 0.3s ease;
+}
+
+.stat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(15, 20, 35, 0.45);
+  backdrop-filter: var(--glass-blur, blur(16px));
+  -webkit-backdrop-filter: var(--glass-blur, blur(16px));
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  color: var(--text-secondary, #8892a4);
+  user-select: none;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+
+.stat-pill:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+.stat-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--text-muted, #4e5668);
+  flex-shrink: 0;
+}
+
+.stat-icon.icon-favorite {
+  color: #f59e0b;
+}
+
+.stat-icon.icon-unread {
+  color: #a855f7;
+}
+
+.stat-value {
+  font-weight: 600;
+  color: var(--text-primary, #eef0f6);
+  letter-spacing: -0.01em;
+}
+
+.stat-label {
+  font-size: 0.74rem;
+  color: var(--text-secondary, #8892a4);
+}
+
+@media (max-width: 768px) {
+  .footer-stats {
+    gap: 6px;
+  }
+  .stat-pill {
+    padding: 4px 8px;
+    font-size: 0.72rem;
+  }
+  .stat-label {
+    display: none;
+  }
+}

@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## [1.2.0] - 2026-10-26
+
+### Aggiunto
+- **Conteggio visualizzazioni differito**: la citazione viene registrata come vista solo ed esclusivamente quando si clicca su "Successiva" (non all'apertura del tab).
+- **Selezione pesata delle citazioni**: algoritmo basato sulle visualizzazioni (`10 / (1 + views)`) per favorire citazioni non lette o lette meno spesso nel lungo periodo.
+- **Funzione Rivedi presto (Review Boost 🔥)**: incrementa temporaneamente la frequenza di comparsa di una citazione per 3 letture.
+- **Statistiche nel footer**: conteggio in tempo reale di citazioni totali, preferiti, non lette e media letture.
+- **Toast di annullamento (Undo Discard)**: ripristino con countdown e progress bar dopo lo scarto di una citazione.
+- **Modularizzazione architetturale**: separazione di `settings-coordinator.js` e suddivisione dei file di stile CSS (`buttons.css`, `modal.css`, `stats.css`, `sync-report.css`, `toast.css`).
+
+### Logica Architetturale (Note per sviluppi futuri)
+- Le visualizzazioni (`viewCounts`) e i boost di ripasso sono memorizzati via `chrome.storage.sync` (sincronizzati su account Google) con fallback trasparente su `chrome.storage.local`.
+- `updateView()` si occupa solo del rendering; `handleNextClick()` è responsabile della registrazione asincrona della lettura della citazione prima del passaggio.
+
 ## [1.1.1] - 2026-05-29
 
 ### Aggiunto

@@ -8,6 +8,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="newtab.css">
+  <link rel="stylesheet" href="toast.css">
+  <link rel="stylesheet" href="stats.css">
+  <link rel="stylesheet" href="sync-report.css">
+  <link rel="stylesheet" href="modal.css">
+  <link rel="stylesheet" href="buttons.css">
 </head>
 <body>
 
@@ -52,6 +57,9 @@
         <div class="meta-and-controls">
           <div class="meta-row">
             <div class="meta-text">
+              <div class="meta-badge-row">
+                <span id="quoteCategoryBadge" class="quote-category-badge hidden"></span>
+              </div>
               <h2 id="bookTitle" class="book-title">Pronto per iniziare?</h2>
               <p id="bookAuthor" class="book-author">
                 Apri le impostazioni e inserisci il tuo token Readwise.
@@ -69,6 +77,12 @@
                     00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
                 <span>Scarta</span>
+              </button>
+
+              <button id="reviewBtn" class="btn btn-review"
+                title="Aumenta la frequenza di comparsa per memorizzarla" disabled>
+                <span class="btn-review-icon">🧠</span>
+                <span id="reviewBtnLabel">Rivedi presto</span>
               </button>
 
               <button id="favoriteBtn" class="btn btn-favorite"
@@ -114,8 +128,58 @@
       </div>
     </main>
 
-    <!-- Settings Gear (fixed bottom-right) -->
+    <!-- Footer: Reading Stats (left) & Settings (right) -->
     <footer class="footer">
+      <div id="footerStats" class="footer-stats hidden">
+        <div class="stat-pill" title="Citazioni totali sincronizzate">
+          <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0
+              016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0
+              2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+          </svg>
+          <span id="statTotalQuotes" class="stat-value">0</span>
+          <span class="stat-label">totali</span>
+        </div>
+
+        <div class="stat-pill" title="Citazioni nei preferiti">
+          <svg class="stat-icon icon-favorite" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0
+              00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0
+              00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0
+              00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0
+              00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0
+              00.951-.69l1.519-4.674z" />
+          </svg>
+          <span id="statFavoriteQuotes" class="stat-value">0</span>
+          <span class="stat-label">preferite</span>
+        </div>
+
+        <div class="stat-pill" title="Citazioni mai visualizzate finora">
+          <svg class="stat-icon icon-unread" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0
+              003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0
+              00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375
+              3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375
+              3.375 0 00-2.456 2.456z" />
+          </svg>
+          <span id="statUnreadQuotes" class="stat-value">0</span>
+          <span class="stat-label">da scoprire</span>
+        </div>
+
+        <div class="stat-pill" title="Media volte lette per citazione">
+          <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003
+              8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <span id="statAvgReads" class="stat-value">0.0x</span>
+          <span class="stat-label">media letture</span>
+        </div>
+      </div>
+
       <button id="settingsToggleBtn" class="settings-toggle-btn" title="Impostazioni">
         <svg class="settings-icon" viewBox="0 0 24 24" fill="none"
           stroke="currentColor" stroke-width="2">
@@ -157,10 +221,65 @@
             <span class="status-label">Stato Sincronizzazione:</span>
             <span id="syncStatus" class="status-value">Non collegato</span>
           </div>
+          <div id="syncReportBox" class="sync-report-box hidden">
+            <div class="sync-report-header">
+              <span>📊 Dettaglio Archivio</span>
+              <span id="repDate" style="font-size: 0.7rem; text-transform: none; opacity: 0.8;"></span>
+            </div>
+            <div class="sync-report-grid">
+              <div class="sync-report-item">
+                <span class="sync-report-label">Scaricate da Readwise</span>
+                <span id="repTotalRaw" class="sync-report-val">0</span>
+              </div>
+              <div class="sync-report-item">
+                <span class="sync-report-label">Scartate (is_discard)</span>
+                <span id="repDiscarded" class="sync-report-val">0</span>
+              </div>
+              <div class="sync-report-item">
+                <span class="sync-report-label">Eliminate (is_deleted)</span>
+                <span id="repDeleted" class="sync-report-val">0</span>
+              </div>
+              <div class="sync-report-item active-highlight">
+                <span class="sync-report-label">Attive nel Tab</span>
+                <span id="repActive" class="sync-report-val">0</span>
+              </div>
+            </div>
+            <div id="syncReportCategories" class="sync-report-categories hidden">
+              <div class="sync-cat-title">Fonti attive:</div>
+              <div id="syncCatPills" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
+            </div>
+          </div>
           <button id="saveApiKeyBtn" class="btn btn-primary btn-block">
             Salva e Sincronizza
           </button>
+          <button id="fullSyncBtn" class="btn btn-secondary btn-block" style="margin-top: 10px;">
+            Risincronizza tutto da zero
+          </button>
         </div>
+      </div>
+    </div>
+
+    <!-- Undo Discard Toast Banner -->
+    <div id="undoToast" class="undo-toast hidden" role="status" aria-live="polite">
+      <div class="undo-toast-content">
+        <svg class="undo-toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0
+            01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0
+            00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+        <span id="undoToastMessage" class="undo-toast-text">Citazione scartata</span>
+        <button id="undoBtn" class="undo-toast-btn" title="Annulla lo scarto">
+          <svg class="undo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M3 10h10a5 5 0 015 5v2m-15-7l4-4m-4 4l4 4" />
+          </svg>
+          <span>Annulla</span>
+        </button>
+        <button id="closeUndoToastBtn" class="undo-toast-close" title="Chiudi notifica">&times;</button>
+      </div>
+      <div class="undo-toast-progress">
+        <div id="undoProgressBar" class="undo-progress-fill"></div>
       </div>
     </div>
 
@@ -170,6 +289,7 @@
   <script src="storage-manager.js"></script>
   <script src="readwise-manager.js"></script>
   <script src="quote-view-model.js"></script>
+  <script src="settings-coordinator.js"></script>
   <script src="coordinator.js"></script>
   <script src="newtab.js"></script>
 </body>

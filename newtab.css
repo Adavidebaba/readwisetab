@@ -244,6 +244,39 @@ body {
   align-items: center;
   min-height: 0;
   position: relative;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 102, 241, 0.4) transparent;
+  scroll-behavior: smooth;
+}
+
+.quote-text-wrapper.has-scroll {
+  align-items: flex-start;
+}
+
+/* Elegant sleek scrollbar */
+.quote-text-wrapper::-webkit-scrollbar {
+  width: 5px;
+}
+
+.quote-text-wrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.quote-text-wrapper::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.25);
+  border-radius: 999px;
+  transition: background 0.2s ease;
+}
+
+.quote-text-wrapper:hover::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.55);
+}
+
+.quote-text-wrapper::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
 }
 
 /* Decorative large opening quote */
@@ -264,11 +297,9 @@ body {
   font-family: var(--font-serif);
   /* Font size is set dynamically by JS — this is the starting maximum */
   font-size: 1.55rem;
-  line-height: 1.58;
+  line-height: 1.6;
   color: var(--text-primary);
   font-weight: 400;
-  /* No overflow, no scroll — JS adapts the size */
-  overflow: hidden;
   width: 100%;
 }
 
@@ -322,105 +353,7 @@ body {
   flex-shrink: 0;
 }
 
-/* ==========================================================================
-   BUTTONS
-   ========================================================================== */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 10px 22px;
-  font-family: var(--font-sans);
-  font-size: 0.9rem;
-  font-weight: 500;
-  border-radius: var(--radius-md);
-  border: none;
-  cursor: pointer;
-  transition: var(--transition);
-  white-space: nowrap;
-  text-decoration: none;
-}
-
-.btn-primary {
-  background: var(--color-primary);
-  color: #fff;
-  box-shadow: 0 4px 14px var(--color-primary-glow);
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: var(--color-primary-hover);
-  box-shadow: 0 6px 22px rgba(99, 102, 241, 0.5);
-  transform: translateY(-2px);
-}
-
-.btn-secondary {
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(255, 255, 255, 0.15);
-  transform: translateY(-2px);
-}
-
-.btn-danger-active {
-  background: rgba(239, 68, 68, 0.1) !important;
-  color: var(--color-danger) !important;
-  border: 1px solid rgba(239, 68, 68, 0.25) !important;
-}
-
-.btn-danger-active:hover:not(:disabled) {
-  background: var(--color-danger) !important;
-  color: #fff !important;
-  box-shadow: 0 6px 22px var(--color-danger-glow);
-  border-color: var(--color-danger-hover) !important;
-}
-
-/* Favorite button — stella dorata */
-.btn-favorite {
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--text-secondary);
-  border: 1px solid var(--border-color);
-}
-
-.btn-favorite:hover:not(:disabled) {
-  background: rgba(251, 191, 36, 0.1);
-  color: #fbbf24;
-  border-color: rgba(251, 191, 36, 0.3);
-  transform: translateY(-2px);
-}
-
-.btn-favorite.is-favorite {
-  background: rgba(251, 191, 36, 0.12);
-  color: #fbbf24;
-  border-color: rgba(251, 191, 36, 0.35);
-  box-shadow: 0 4px 14px rgba(251, 191, 36, 0.2);
-}
-
-.btn-favorite.is-favorite:hover:not(:disabled) {
-  background: rgba(251, 191, 36, 0.22);
-  box-shadow: 0 6px 22px rgba(251, 191, 36, 0.35);
-}
-
-.btn:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-  transform: none !important;
-  box-shadow: none !important;
-}
-
-.btn-icon {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-}
-
-.btn-block {
-  width: 100%;
-}
+/* Note: Button styles moved to buttons.css */
 
 /* ==========================================================================
    FOOTER
@@ -461,123 +394,7 @@ body {
   height: 18px;
 }
 
-/* ==========================================================================
-   SETTINGS MODAL
-   ========================================================================== */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(4, 6, 14, 0.7);
-  backdrop-filter: blur(10px);
-  z-index: 100;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.modal-content {
-  background: #0f1422;
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: var(--radius-lg);
-  width: 100%;
-  max-width: 460px;
-  padding: 32px;
-  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.7);
-  animation: modalEnter 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-@keyframes modalEnter {
-  from { opacity: 0; transform: scale(0.94) translateY(12px); }
-  to   { opacity: 1; transform: scale(1) translateY(0); }
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.modal-header h3 {
-  font-size: 1.2rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  font-size: 1.6rem;
-  cursor: pointer;
-  line-height: 1;
-  transition: var(--transition);
-  padding: 0 4px;
-}
-
-.close-btn:hover { color: var(--text-primary); }
-
-.modal-description {
-  font-size: 0.88rem;
-  color: var(--text-secondary);
-  line-height: 1.6;
-  margin-bottom: 22px;
-}
-
-.modal-description a {
-  color: var(--color-primary);
-  text-decoration: none;
-  font-weight: 500;
-}
-
-.modal-description a:hover { text-decoration: underline; }
-
-.form-group {
-  margin-bottom: 18px;
-}
-
-.form-group label {
-  display: block;
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-  margin-bottom: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.form-group input {
-  width: 100%;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: 12px 16px;
-  font-family: var(--font-sans);
-  color: var(--text-primary);
-  font-size: 0.93rem;
-  outline: none;
-  transition: var(--transition);
-}
-
-.form-group input:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
-}
-
-.sync-status-box {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: 12px 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.88rem;
-  margin-bottom: 20px;
-}
-
-.status-label { color: var(--text-secondary); }
-.status-value { font-weight: 600; color: var(--color-primary); }
+/* Note: Settings modal styles moved to modal.css */
 
 .hidden { display: none !important; }
 

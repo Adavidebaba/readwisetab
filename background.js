@@ -23,7 +23,6 @@ chrome.runtime.onInstalled.addListener(() => {
 
 chrome.runtime.onStartup.addListener(() => {
   scheduleAlarm();
-  createContextMenu();
 });
 
 function scheduleAlarm() {
@@ -40,10 +39,17 @@ function scheduleAlarm() {
 
 function createContextMenu() {
   chrome.contextMenus.removeAll(() => {
+    if (chrome.runtime.lastError) {
+      // Ignora eventuali warning di pulizia
+    }
     chrome.contextMenus.create({
       id: CONTEXT_MENU_ID,
       title: '📌 Salva su Readwise',
       contexts: ['selection']
+    }, () => {
+      if (chrome.runtime.lastError) {
+        // Ignora duplicati se la voce di menu è già stata registrata
+      }
     });
   });
 }
@@ -138,7 +144,7 @@ async function runIncrementalSync() {
   try {
     const mgr  = new ReadwiseManager(apiKey);
     const books = await mgr.syncAllQuotes(updatedAfter);
-    const { quotes: incoming, discardedIds } = mgr.extractQuotes(books);
+    const { quotes: incoming, discardedIds, report } = mgr.extractQuotes(books);
 
     if (lastSync === 0) {
       await storage.setQuotes(incoming);
@@ -147,6 +153,10 @@ async function runIncrementalSync() {
     }
 
     await storage.setLastSync(Date.now());
+    if (report) {
+      report.timestamp = Date.now();
+      await storage.setSyncReport(report);
+    }
     console.log(`[Background] Sync complete — ${incoming.length} updated, ${discardedIds.length} discarded`);
   } catch (err) {
     console.error('[Background] Sync failed:', err.message);

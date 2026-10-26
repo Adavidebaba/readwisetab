@@ -8,50 +8,67 @@ class NewTabCoordinator {
     this.viewModel = new QuoteViewModel();
     this.readwise  = null;
 
+    this.settings = new SettingsCoordinator(this.storage, this.viewModel, (finalQuotes, mgr) => {
+      this.readwise = mgr;
+      this.viewModel.quotes = finalQuotes;
+      this.viewModel.selectWeightedQuote();
+      this.updateView();
+    });
+
     this.initializeDOMElements();
     this.bindEventListeners();
   }
 
   initializeDOMElements() {
-    this.quoteCard       = document.getElementById('quoteCard');
-    this.quoteText       = document.getElementById('quoteText');
-    this.quoteTextWrapper = this.quoteText.closest('.quote-text-wrapper');
-    this.bookTitle       = document.getElementById('bookTitle');
-    this.bookAuthor      = document.getElementById('bookAuthor');
-    this.bookCover       = document.getElementById('bookCover');
-    this.coverFallback   = document.getElementById('coverFallback');
-    this.fallbackTitle   = document.getElementById('fallbackTitle');
-    this.nextBtn         = document.getElementById('nextBtn');
-    this.discardBtn      = document.getElementById('discardBtn');
-    this.favoriteBtn     = document.getElementById('favoriteBtn');
-    this.starEmpty       = document.getElementById('starEmpty');
-    this.starFilled      = document.getElementById('starFilled');
-    this.favoriteBtnLabel = document.getElementById('favoriteBtnLabel');
-    this.settingsToggleBtn = document.getElementById('settingsToggleBtn');
-    this.settingsModal   = document.getElementById('settingsModal');
-    this.closeSettingsBtn = document.getElementById('closeSettingsBtn');
-    this.apiKeyInput     = document.getElementById('apiKeyInput');
-    this.saveApiKeyBtn   = document.getElementById('saveApiKeyBtn');
-    this.syncStatus      = document.getElementById('syncStatus');
+    this.quoteCard          = document.getElementById('quoteCard');
+    this.quoteText          = document.getElementById('quoteText');
+    this.quoteTextWrapper   = this.quoteText.closest('.quote-text-wrapper');
+    this.bookTitle          = document.getElementById('bookTitle');
+    this.bookAuthor         = document.getElementById('bookAuthor');
+    this.bookCover          = document.getElementById('bookCover');
+    this.coverFallback      = document.getElementById('coverFallback');
+    this.fallbackTitle      = document.getElementById('fallbackTitle');
+    this.quoteCategoryBadge = document.getElementById('quoteCategoryBadge');
+    this.nextBtn            = document.getElementById('nextBtn');
+    this.discardBtn         = document.getElementById('discardBtn');
+    this.reviewBtn          = document.getElementById('reviewBtn');
+    this.reviewBtnLabel     = document.getElementById('reviewBtnLabel');
+    this.favoriteBtn        = document.getElementById('favoriteBtn');
+    this.starEmpty          = document.getElementById('starEmpty');
+    this.starFilled         = document.getElementById('starFilled');
+    this.favoriteBtnLabel   = document.getElementById('favoriteBtnLabel');
+    this.undoToast          = document.getElementById('undoToast');
+    this.undoBtn            = document.getElementById('undoBtn');
+    this.closeUndoToastBtn  = document.getElementById('closeUndoToastBtn');
+    this.undoProgressBar    = document.getElementById('undoProgressBar');
+    this.undoTimer          = null;
+    this.footerStats        = document.getElementById('footerStats');
+    this.statTotalQuotes    = document.getElementById('statTotalQuotes');
+    this.statFavoriteQuotes = document.getElementById('statFavoriteQuotes');
+    this.statUnreadQuotes   = document.getElementById('statUnreadQuotes');
+    this.statAvgReads       = document.getElementById('statAvgReads');
   }
 
   bindEventListeners() {
-    this.nextBtn.addEventListener('click',      () => this.handleNextClick());
-    this.discardBtn.addEventListener('click',   () => this.handleDiscardClick());
-    this.favoriteBtn.addEventListener('click',  () => this.handleFavoriteClick());
-    this.settingsToggleBtn.addEventListener('click', () => this.openSettings());
-    this.closeSettingsBtn.addEventListener('click',  () => this.closeSettings());
-    this.saveApiKeyBtn.addEventListener('click',     () => this.handleSaveApiKey());
+    this.nextBtn.addEventListener('click', () => this.handleNextClick());
+    this.discardBtn.addEventListener('click', () => this.handleDiscardClick());
+    if (this.reviewBtn) {
+      this.reviewBtn.addEventListener('click', () => this.handleReviewClick());
+    }
+    this.favoriteBtn.addEventListener('click', () => this.handleFavoriteClick());
+    this.undoBtn.addEventListener('click', () => this.handleUndoClick());
+    this.closeUndoToastBtn.addEventListener('click', () => this.hideUndoToast());
 
-    this.settingsModal.addEventListener('click', (e) => {
-      if (e.target === this.settingsModal) this.closeSettings();
-    });
-
-    // Listen for storage updates pushed by the background sync
-    chrome.storage.onChanged.addListener(async (changes, area) => {
-      if (area === 'local' && changes[StorageManager.KEYS.QUOTES]) {
+    // Listen for storage updates pushed by background sync or other tabs
+    chrome.storage.onChanged.addListener(async (changes) => {
+      if (changes[StorageManager.KEYS.QUOTES]) {
         this.viewModel.quotes = changes[StorageManager.KEYS.QUOTES].newValue || [];
-        await this.populateSyncStatus();
+        await this.settings.populateSyncStatus();
+        this.updateStatsView();
+      }
+      if (changes[StorageManager.KEYS.VIEW_COUNTS]) {
+        this.viewModel.viewCounts = changes[StorageManager.KEYS.VIEW_COUNTS].newValue || {};
+        this.updateStatsView();
       }
     });
   }
@@ -62,9 +79,9 @@ class NewTabCoordinator {
       this.readwise = new ReadwiseManager(key);
       await this.viewModel.loadData(this.storage);
       this.updateView();
-      this.populateSyncStatus();
+      await this.settings.populateSyncStatus();
     } else {
-      this.openSettings();
+      this.settings.openSettings();
     }
   }
 
@@ -79,23 +96,96 @@ class NewTabCoordinator {
     }
   }
 
+  updateStatsView() {
+    if (!this.footerStats) return;
+    if (!this.viewModel.hasQuotes()) {
+      this.footerStats.classList.add('hidden');
+      return;
+    }
+    const stats = this.viewModel.getStats();
+    this.statTotalQuotes.textContent    = stats.total;
+    this.statFavoriteQuotes.textContent = stats.favorites;
+    this.statUnreadQuotes.textContent   = stats.unread;
+    this.statAvgReads.textContent       = `${stats.averageReads}x`;
+    this.footerStats.classList.remove('hidden');
+  }
+
   updateView() {
     if (!this.viewModel.hasQuotes()) {
       this.showSetupRequiredView();
+      this.updateStatsView();
       return;
     }
+
+    this.updateStatsView();
+
     this.applyTransition(() => {
       const q = this.viewModel.currentQuote;
       this.quoteText.textContent  = q.text;
       this.bookTitle.textContent  = q.bookTitle;
       this.bookAuthor.textContent = q.bookAuthor;
       this.updateCoverImage(q);
+      this.updateCategoryBadge(q);
       this.updateFavoriteButton(q.isFavorite);
+      this.updateReviewButton(this.viewModel.isCurrentQuoteBoosted());
       this.nextBtn.disabled    = false;
       this.discardBtn.disabled = false;
+      if (this.reviewBtn) this.reviewBtn.disabled = false;
       this.favoriteBtn.disabled = false;
       requestAnimationFrame(() => FontScaler.fit(this.quoteText, this.quoteTextWrapper));
     });
+  }
+
+  async handleReviewClick() {
+    if (!this.viewModel.currentQuote) return;
+    this.reviewBtn.disabled = true;
+    try {
+      await this.viewModel.boostCurrentQuote(this.storage);
+      this.updateReviewButton(true);
+    } catch (err) {
+      console.error('Review boost error:', err);
+    } finally {
+      this.reviewBtn.disabled = false;
+    }
+  }
+
+  updateReviewButton(isBoosted) {
+    if (!this.reviewBtn) return;
+    if (isBoosted) {
+      this.reviewBtn.classList.add('is-boosted');
+      if (this.reviewBtnLabel) this.reviewBtnLabel.textContent = 'In ripasso 🔥';
+      this.reviewBtn.title = 'Ripasso attivo: questa citazione comparirà molto spesso nei prossimi tab';
+    } else {
+      this.reviewBtn.classList.remove('is-boosted');
+      if (this.reviewBtnLabel) this.reviewBtnLabel.textContent = 'Rivedi presto';
+      this.reviewBtn.title = 'Aumenta la frequenza di comparsa per memorizzarla a breve';
+    }
+  }
+
+  updateCategoryBadge(quote) {
+    if (!this.quoteCategoryBadge) return;
+    if (!quote || !quote.category) {
+      this.quoteCategoryBadge.classList.add('hidden');
+      return;
+    }
+
+    const categoryMap = {
+      books:         { label: 'Libro',             icon: '📚', className: 'badge-books' },
+      articles:      { label: 'Articolo',          icon: '📄', className: 'badge-articles' },
+      tweets:        { label: 'Tweet',             icon: '🐦', className: 'badge-tweets' },
+      podcasts:      { label: 'Podcast',           icon: '🎙️', className: 'badge-podcasts' },
+      supplementals: { label: 'Supplemental Book', icon: '📑', className: 'badge-supplementals' }
+    };
+
+    const config = categoryMap[quote.category] || {
+      label: quote.category,
+      icon: '🔖',
+      className: 'badge-default'
+    };
+
+    this.quoteCategoryBadge.textContent = `${config.icon} ${config.label}`;
+    this.quoteCategoryBadge.className = `quote-category-badge ${config.className}`;
+    this.quoteCategoryBadge.classList.remove('hidden');
   }
 
   updateFavoriteButton(isFavorite) {
@@ -131,8 +221,10 @@ class NewTabCoordinator {
     this.bookCover.classList.add('hidden');
     this.coverFallback.classList.remove('hidden');
     this.fallbackTitle.textContent = 'SETUP';
+    if (this.quoteCategoryBadge) this.quoteCategoryBadge.classList.add('hidden');
     this.nextBtn.disabled    = true;
     this.discardBtn.disabled = true;
+    if (this.reviewBtn) this.reviewBtn.disabled = true;
     this.favoriteBtn.disabled = true;
     this.quoteText.style.fontSize = '1.3rem';
   }
@@ -156,8 +248,15 @@ class NewTabCoordinator {
   }
 
   async handleNextClick() {
-    this.viewModel.selectWeightedQuote();
-    this.updateView();
+    if (this.nextBtn) this.nextBtn.disabled = true;
+    try {
+      await this.viewModel.recordCurrentView(this.storage);
+    } catch (err) {
+      console.error('Error recording view count:', err);
+    } finally {
+      this.viewModel.selectWeightedQuote();
+      this.updateView();
+    }
   }
 
   async handleDiscardClick() {
@@ -165,6 +264,7 @@ class NewTabCoordinator {
     this.discardBtn.classList.add('btn-danger-active');
     try {
       await this.viewModel.discardCurrent(this.storage, this.readwise);
+      this.showUndoToast();
     } catch (err) {
       console.error('Discard API error:', err.message);
       alert(`Attenzione: ${err.message}\n\nLa citazione è stata rimossa dalla lista locale.`);
@@ -175,6 +275,60 @@ class NewTabCoordinator {
     }
   }
 
+  showUndoToast() {
+    if (!this.undoToast) return;
+    this.clearUndoTimer();
+
+    this.undoToast.classList.remove('hidden');
+    void this.undoToast.offsetWidth; // Force reflow
+    this.undoToast.classList.add('visible');
+
+    if (this.undoProgressBar) {
+      this.undoProgressBar.classList.remove('animating');
+      void this.undoProgressBar.offsetWidth;
+      this.undoProgressBar.classList.add('animating');
+    }
+
+    this.undoTimer = setTimeout(() => {
+      this.hideUndoToast();
+    }, 10000);
+  }
+
+  hideUndoToast() {
+    this.clearUndoTimer();
+    if (!this.undoToast) return;
+    this.undoToast.classList.remove('visible');
+    setTimeout(() => {
+      if (!this.undoToast.classList.contains('visible')) {
+        this.undoToast.classList.add('hidden');
+      }
+    }, 300);
+  }
+
+  clearUndoTimer() {
+    if (this.undoTimer) {
+      clearTimeout(this.undoTimer);
+      this.undoTimer = null;
+    }
+  }
+
+  async handleUndoClick() {
+    this.hideUndoToast();
+    if (!this.viewModel.lastDiscarded) return;
+
+    this.undoBtn.disabled = true;
+    try {
+      await this.viewModel.undoDiscard(this.storage, this.readwise);
+      this.updateView();
+    } catch (err) {
+      console.error('Undo API error:', err.message);
+      alert(`Attenzione: errore nel ripristino su Readwise (${err.message}). La citazione è comunque stata ripristinata localmente.`);
+      this.updateView();
+    } finally {
+      this.undoBtn.disabled = false;
+    }
+  }
+
   async handleFavoriteClick() {
     if (!this.viewModel.currentQuote) return;
     this.favoriteBtn.disabled = true;
@@ -182,76 +336,14 @@ class NewTabCoordinator {
     this.updateFavoriteButton(!previousValue); // ottimistico
     try {
       await this.viewModel.toggleFavoriteCurrent(this.storage, this.readwise);
+      this.updateStatsView();
     } catch (err) {
       console.error('Favorite API error:', err.message);
       this.updateFavoriteButton(previousValue); // ripristina
+      this.updateStatsView();
       alert(`Errore: ${err.message}`);
     } finally {
       this.favoriteBtn.disabled = false;
-    }
-  }
-
-  async openSettings()  {
-    await this.populateSyncStatus();
-    this.settingsModal.classList.remove('hidden');
-  }
-  closeSettings() { this.settingsModal.classList.add('hidden'); }
-
-  async handleSaveApiKey() {
-    const key = this.apiKeyInput.value.trim();
-    if (!key) return alert('Inserisci un token valido.');
-
-    this.saveApiKeyBtn.disabled = true;
-    this.syncStatus.textContent = 'Verifica connessione...';
-
-    try {
-      const mgr = new ReadwiseManager(key);
-      const isConnected = await mgr.testConnection();
-      if (!isConnected) throw new Error('Token non valido o connessione fallita.');
-
-      await this.storage.setApiKey(key);
-      this.readwise = mgr;
-
-      // Sync incrementale: usa updatedAfter se c'è già una sync precedente
-      const lastSync  = await this.storage.getLastSync();
-      const isFirstSync = lastSync === 0;
-      const updatedAfter = isFirstSync ? null : new Date(lastSync).toISOString();
-
-      this.syncStatus.textContent = isFirstSync
-        ? 'Prima sincronizzazione (può richiedere qualche minuto)...'
-        : 'Aggiornamento incrementale...';
-
-      const books = await mgr.syncAllQuotes(updatedAfter, (count, pages) => {
-        this.syncStatus.textContent = `Scaricamento... ${count} citazioni (${pages} pag)`;
-      });
-
-      const { quotes: incoming, discardedIds } = mgr.extractQuotes(books);
-
-      let finalQuotes;
-      if (isFirstSync) {
-        await this.storage.setQuotes(incoming);
-        finalQuotes = incoming;
-      } else {
-        finalQuotes = await this.storage.mergeIncrementalQuotes(incoming, discardedIds);
-      }
-
-      await this.storage.setLastSync(Date.now());
-      this.viewModel.quotes = finalQuotes;
-      this.viewModel.selectWeightedQuote();
-      this.updateView();
-
-      const label = isFirstSync
-        ? `${finalQuotes.length} citazioni caricate`
-        : `+${incoming.length} nuove, ${discardedIds.length} rimosse`;
-      this.syncStatus.textContent = label;
-
-      setTimeout(() => this.closeSettings(), 800);
-    } catch (err) {
-      console.error(err);
-      this.syncStatus.textContent = 'Errore!';
-      alert(err.message || 'Errore di connessione a Readwise.');
-    } finally {
-      this.saveApiKeyBtn.disabled = false;
     }
   }
 }

@@ -68,34 +68,55 @@ class ReadwiseManager {
 
   /**
    * Extracts clean quote objects from Export API book results.
-   * Returns { quotes: [...], discardedIds: [...] }
-   * discardedIds = highlights that are now tagged as discard (used for incremental removal)
+   * Returns { quotes: [...], discardedIds: [...], report: {...} }
    */
   extractQuotes(books) {
     const quotes = [];
     const discardedIds = [];
+    const report = { totalRaw: 0, discarded: 0, deleted: 0, taggedDiscard: 0, active: 0, byCategory: {} };
 
     for (const book of books) {
+      if (book.is_deleted === true) {
+        if (Array.isArray(book.highlights)) {
+          report.totalRaw += book.highlights.length;
+          report.deleted += book.highlights.length;
+          discardedIds.push(...book.highlights.map(h => h.id));
+        }
+        continue;
+      }
       if (!book.highlights || book.highlights.length === 0) continue;
 
       for (const h of book.highlights) {
-        const isDiscarded = Array.isArray(h.tags) && h.tags.some(t => t.name === 'discard');
+        report.totalRaw++;
+        const hasDiscardTag = Array.isArray(h.tags) && h.tags.some(t => t.name === 'discard');
+        const isDiscarded = h.is_discard === true || h.is_deleted === true || hasDiscardTag;
+
         if (isDiscarded) {
+          if (h.is_discard === true) report.discarded++;
+          if (h.is_deleted === true) report.deleted++;
+          if (hasDiscardTag) report.taggedDiscard++;
           discardedIds.push(h.id);
           continue;
         }
+
+        report.active++;
+        const isSupplemental = book.category === 'supplementals' || book.source === 'supplemental';
+        const category = isSupplemental ? 'supplementals' : (book.category || 'books');
+        report.byCategory[category] = (report.byCategory[category] || 0) + 1;
+
         quotes.push({
           id:         h.id,
           text:       h.text,
           bookTitle:  book.title,
           bookAuthor: book.author,
           coverUrl:   book.cover_image_url,
+          category:   category,
           isFavorite: h.is_favorite === true
         });
       }
     }
 
-    return { quotes, discardedIds };
+    return { quotes, discardedIds, report };
   }
 
   async tagQuoteAsDiscard(highlightId) {
@@ -105,11 +126,46 @@ class ReadwiseManager {
       headers: this.getHeaders(),
       body: JSON.stringify({ name: 'discard' })
     });
-    // 200/201=ok, 400=tag duplicato, 404=non trovata, 409=conflitto → tutti soft-ok
-    if (response.ok || [400, 404, 409].includes(response.status)) {
-      return { ok: true, status: response.status };
+    if (response.ok) {
+      try {
+        const data = await response.json();
+        return { ok: true, tagId: data?.id || null };
+      } catch {
+        return { ok: true, tagId: null };
+      }
+    }
+    // 400=tag duplicato, 404=non trovata, 409=conflitto → tutti soft-ok
+    if ([400, 404, 409].includes(response.status)) {
+      return { ok: true, tagId: null };
     }
     throw new Error(`Errore API Readwise (HTTP ${response.status}): tagging fallito.`);
+  }
+
+  async removeDiscardTag(highlightId, tagId = null) {
+    let targetTagId = tagId;
+    if (!targetTagId) {
+      const tagsUrl = `${this.baseUrl}/highlights/${highlightId}/tags/`;
+      const getRes = await fetch(tagsUrl, { headers: this.getHeaders() });
+      if (getRes.ok) {
+        const tags = await getRes.json();
+        const list = Array.isArray(tags) ? tags : (tags.results || []);
+        const discardTag = list.find(t => t.name === 'discard');
+        if (discardTag) targetTagId = discardTag.id;
+      }
+    }
+
+    if (targetTagId) {
+      const deleteUrl = `${this.baseUrl}/highlights/${highlightId}/tags/${targetTagId}/`;
+      const delRes = await fetch(deleteUrl, {
+        method: 'DELETE',
+        headers: this.getHeaders()
+      });
+      if (delRes.ok || delRes.status === 204 || delRes.status === 404) {
+        return { ok: true };
+      }
+      throw new Error(`Errore rimozione tag (HTTP ${delRes.status})`);
+    }
+    return { ok: true };
   }
 
   async toggleFavorite(highlightId, isFavorite) {
